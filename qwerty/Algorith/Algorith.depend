@@ -1,0 +1,18 @@
+# depslib dependency file v1.0
+1759169781 source:c:\users\max\downloads\qwerty\algorith\main.cpp
+	<fstream>
+	<chrono>
+	<random>
+	<iostream>
+	<windows.h>
+	<vector>
+	<string>
+	<sstream>
+	<thread>
+	<algorithm>
+	<functional>
+	<cmath>
+	<queue>
+	<stack>
+	<mutex>
+

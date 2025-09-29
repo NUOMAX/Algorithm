@@ -16,3 +16,20 @@
 	<stack>
 	<mutex>
 
+1759169781 source:c:\users\max\desktop\sort\algorithm\algorith\main.cpp
+	<fstream>
+	<chrono>
+	<random>
+	<iostream>
+	<windows.h>
+	<vector>
+	<string>
+	<sstream>
+	<thread>
+	<algorithm>
+	<functional>
+	<cmath>
+	<queue>
+	<stack>
+	<mutex>
+

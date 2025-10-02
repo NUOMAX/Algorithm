@@ -13,20 +13,26 @@
 #include <queue>
 #include <stack>
 #include <mutex>
+#include <atomic>
 using namespace std;
 
+// Ускоренный генератор случайных чисел
+mt19937& get_random_engine() {
+    static mt19937 engine(chrono::steady_clock::now().time_since_epoch().count());
+    return engine;
+}
+
 int rand_uns(int min, int max) {
-    unsigned seed = std::chrono::steady_clock::now().time_since_epoch().count();
-    static std::default_random_engine e(seed);
-    std::uniform_int_distribution<int> d(min, max);
-    return d(e);
+    static uniform_int_distribution<int> dist;
+    return dist(get_random_engine(), uniform_int_distribution<int>::param_type(min, max));
 }
 
 double get_time() {
-    return std::chrono::duration_cast<std::chrono::microseconds>
-    (std::chrono::steady_clock::now().time_since_epoch()).count()/1e6;
+    return chrono::duration_cast<chrono::microseconds>
+    (chrono::steady_clock::now().time_since_epoch()).count()/1e6;
 }
 
+// Алгоритмы сортировки
 void bubble_sort(int arr[], int n) {
     bool swapped;
     for (int i = 0; i < n-1; i++) {
@@ -168,16 +174,21 @@ void heap_sort(int arr[], int n) {
     }
 }
 
+// Оптимизированное копирование массива
 int* copy_array(int source[], int n) {
     int* dest = new int[n];
-    for (int i = 0; i < n; i++) {
-        dest[i] = source[i];
-    }
+    memcpy(dest, source, n * sizeof(int));
     return dest;
 }
 
+// Оптимизированное измерение времени с предварительным прогревом
 double measure_sort_time(int arr[], int n, void (*sort_func)(int[], int), int repetitions = 1) {
     if (repetitions <= 0) repetitions = 1;
+
+    // Предварительный прогон для "прогрева" кэша
+    int* warmup_arr = copy_array(arr, n);
+    sort_func(warmup_arr, n);
+    delete[] warmup_arr;
 
     double total_time = 0;
     for (int rep = 0; rep < repetitions; rep++) {
@@ -191,20 +202,21 @@ double measure_sort_time(int arr[], int n, void (*sort_func)(int[], int), int re
     return total_time / repetitions;
 }
 
+// Оптимизированное создание массива
 int* create_array(int n, int type) {
     int* arr = new int[n];
     switch (type) {
-        case 0:
+        case 0: // Random
             for (int i = 0; i < n; i++) {
                 arr[i] = rand_uns(1, 10000);
             }
             break;
-        case 1:
+        case 1: // Sorted
             for (int i = 0; i < n; i++) {
                 arr[i] = i + 1;
             }
             break;
-        case 2:
+        case 2: // Reverse sorted
             for (int i = 0; i < n; i++) {
                 arr[i] = n - i;
             }
@@ -213,6 +225,18 @@ int* create_array(int n, int type) {
     return arr;
 }
 
+// Умное определение количества повторений
+int determine_repetitions(int size) {
+    if (size <= 100) return 100;
+    if (size <= 1000) return 50;
+    if (size <= 5000) return 20;
+    if (size <= 10000) return 10;
+    if (size <= 50000) return 5;
+    if (size <= 100000) return 3;
+    return 1;
+}
+
+// Классы AnimationWindow и GraphWindow
 class AnimationWindow {
 private:
     HWND hwnd;
@@ -316,14 +340,14 @@ public:
 
         for (size_t i = 0; i < data.size(); i++) {
             int barHeight = (data[i] * graphHeight) / max_val;
-            int x = margin + i * barWidth;
+            int x = margin + (int)i * barWidth;
             int y = graphTop + graphHeight - barHeight;
 
             HBRUSH barBrush;
 
             bool is_highlighted = false;
             for (int idx : highlighted_indices) {
-                if (i == idx) {
+                if ((int)i == idx) {
                     is_highlighted = true;
                     break;
                 }
@@ -331,7 +355,7 @@ public:
 
             bool is_compared = false;
             for (auto& pair : compared_indices) {
-                if (i == pair.first || i == pair.second) {
+                if ((int)i == pair.first || (int)i == pair.second) {
                     is_compared = true;
                     break;
                 }
@@ -368,7 +392,7 @@ public:
 
         wchar_t info[150];
         swprintf_s(info, L"Algorithm: %s | Elements: %d",
-                  algo_names[current_algorithm], data.size());
+                  algo_names[current_algorithm], (int)data.size());
         TextOutW(hdcBuffer, margin, 20, info, wcslen(info));
 
         if (animation_running) {
@@ -377,8 +401,8 @@ public:
             TextOutW(hdcBuffer, margin, 45, L"Status: Ready", 13);
         }
 
-        TextOutW(hdcBuffer, margin, 70, L"1: Bubble Sort  2: Selection Sort  3: Insertion Sort", 50);
-        TextOutW(hdcBuffer, margin, 95, L"4: Quick Sort    5: Merge Sort      6: Heap Sort", 45);
+        TextOutW(hdcBuffer, margin, 70, L"1: Bubble Sort  2: Selection Sort  3: Insertion Sort", 55);
+        TextOutW(hdcBuffer, margin, 95, L"4: Quick Sort    5: Merge Sort      6: Heap Sort", 35);
 
         SelectObject(hdcBuffer, oldPen);
         DeleteObject(axisPen);
@@ -412,7 +436,7 @@ public:
 
     void animateBubbleSort() {
         animation_running = true;
-        int n = data.size();
+        int n = (int)data.size();
         bool swapped;
 
         for (int i = 0; i < n-1; i++) {
@@ -438,7 +462,7 @@ public:
 
     void animateSelectionSort() {
         animation_running = true;
-        int n = data.size();
+        int n = (int)data.size();
 
         for (int i = 0; i < n-1; i++) {
             int min_idx = i;
@@ -466,7 +490,7 @@ public:
 
     void animateInsertionSort() {
         animation_running = true;
-        int n = data.size();
+        int n = (int)data.size();
 
         for (int i = 1; i < n; i++) {
             int key = data[i];
@@ -524,7 +548,7 @@ public:
 
     void animateQuickSort() {
         animation_running = true;
-        animateQuickSort(0, data.size() - 1);
+        animateQuickSort(0, (int)data.size() - 1);
         highlighted_indices.clear();
         compared_indices.clear();
         animation_running = false;
@@ -554,9 +578,9 @@ public:
             temp[k++] = data[j++];
         }
 
-        for (int i = left; i <= right; i++) {
-            data[i] = temp[i - left];
-            highlighted_indices = {i};
+        for (int idx = left; idx <= right; idx++) {
+            data[idx] = temp[idx - left];
+            highlighted_indices = {idx};
             updateAnimation();
         }
     }
@@ -580,7 +604,7 @@ public:
 
     void animateMergeSort() {
         animation_running = true;
-        animateMergeSort(0, data.size() - 1);
+        animateMergeSort(0, (int)data.size() - 1);
         highlighted_indices.clear();
         compared_indices.clear();
         animation_running = false;
@@ -617,7 +641,7 @@ public:
 
     void animateHeapSort() {
         animation_running = true;
-        int n = data.size();
+        int n = (int)data.size();
 
         for (int i = n / 2 - 1; i >= 0; i--) {
             animateHeapify(n, i);
@@ -763,7 +787,7 @@ public:
         int max_index = max(1, (int)sizes.size() - 1);
 
         for (size_t algo = 0; algo < times.size(); algo++) {
-            if (current_display == 0 || current_display == algo + 1) {
+            if (current_display == 0 || current_display == (int)algo + 1) {
                 for (size_t i = 0; i < sizes.size(); i++) {
                     double value = times[algo][i];
                     if (graph_type == 1 && sizes[i] > 1) {
@@ -788,13 +812,15 @@ public:
 
         TextOutW(hdc, margin + graphWidth/2 - 70, margin + graphHeight + 30, L"Array Size", 10);
 
+        // Вывод подписей размеров для каждой 1-й точки (всех точек)
         for (size_t i = 0; i < sizes.size(); i++) {
-            if (i % 2 == 0) {
-                int x = margin + i * graphWidth / max_index;
-                wchar_t size_label[20];
-                swprintf_s(size_label, L"%d", sizes[i]);
-                TextOutW(hdc, x - 15, margin + graphHeight + 10, size_label, wcslen(size_label));
-            }
+            int x = margin + (int)i * graphWidth / max_index;
+            wchar_t size_label[20];
+            swprintf_s(size_label, L"%d", sizes[i]);
+
+            SIZE textSize;
+            GetTextExtentPoint32W(hdc, size_label, wcslen(size_label), &textSize);
+            TextOutW(hdc, x - textSize.cx/2, margin + graphHeight + 10, size_label, wcslen(size_label));
         }
 
         for (int i = 0; i <= 5; i++) {
@@ -814,41 +840,41 @@ public:
             RGB(128, 0, 128)
         };
 
-        for (int algo = 0; algo < 6; algo++) {
-            if (current_display == 0 || current_display == algo + 1) {
-                HPEN linePen = CreatePen(PS_SOLID, 2, colors[algo]);
-                SelectObject(hdc, linePen);
-                HBRUSH pointBrush = CreateSolidBrush(colors[algo]);
+        // ТОЛЬКО ТОЧКИ - БЕЗ ЛИНИЙ!
+       // ТОЛЬКО ТОЧКИ - БЕЗ ЛИНИЙ И БЕЗ КОНТУРА!
+for (int algo = 0; algo < 6; algo++) {
+    if (current_display == 0 || current_display == algo + 1) {
+        HBRUSH pointBrush = CreateSolidBrush(colors[algo]);
+        HPEN transparentPen = CreatePen(PS_NULL, 1, RGB(0, 0, 0)); // Прозрачное перо
 
-                for (size_t i = 1; i < sizes.size(); i++) {
-                    double value1 = times[algo][i-1];
-                    double value2 = times[algo][i];
+        // Сохраняем старые объекты
+        HPEN oldPen = (HPEN)SelectObject(hdc, transparentPen);
+        HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, pointBrush);
 
-                    if (graph_type == 1 && sizes[i-1] > 1 && sizes[i] > 1) {
-                        value1 = value1 / (sizes[i-1] * log2(sizes[i-1]));
-                        value2 = value2 / (sizes[i] * log2(sizes[i]));
-                    }
+        for (size_t i = 0; i < sizes.size(); i++) {
+            double value = times[algo][i];
+            if (graph_type == 1 && sizes[i] > 1) {
+                value = value / (sizes[i] * log2(sizes[i]));
+            }
 
-                    int x1 = margin + (i-1) * graphWidth / max_index;
-                    int y1 = margin + graphHeight - (value1 * graphHeight) / max_val;
-                    int x2 = margin + i * graphWidth / max_index;
-                    int y2 = margin + graphHeight - (value2 * graphHeight) / max_val;
+            int x = margin + (int)i * graphWidth / max_index;
+            int y = margin + graphHeight - (value * graphHeight) / max_val;
 
-                    MoveToEx(hdc, x1, y1, NULL);
-                    LineTo(hdc, x2, y2);
-
-                    SelectObject(hdc, pointBrush);
-                    if (algo < 3) {
-                        Ellipse(hdc, x1 - 3, y1 - 3, x1 + 3, y1 + 3);
-                    } else {
-                        Rectangle(hdc, x1 - 3, y1 - 3, x1 + 3, y1 + 3);
-                    }
-                }
-
-                DeleteObject(linePen);
-                DeleteObject(pointBrush);
+            // Рисуем точки без контура
+            if (algo < 3) {
+                Ellipse(hdc, x - 3, y - 3, x + 3, y + 3);
+            } else {
+                Rectangle(hdc, x - 3, y - 3, x + 3, y + 3);
             }
         }
+
+        // Восстанавливаем старые объекты и удаляем созданные
+        SelectObject(hdc, oldPen);
+        SelectObject(hdc, oldBrush);
+        DeleteObject(transparentPen);
+        DeleteObject(pointBrush);
+    }
+}
 
         int legendX = margin + graphWidth - 250;
         int legendY = margin + 20;
@@ -894,7 +920,7 @@ public:
 
         TextOutW(hdc, margin, margin - 70,
                 L"0-6: Select algorithm (0-all, 1-bubble, 2-selection, 3-insertion, 4-quick, 5-merge, 6-heap)",
-                80);
+                92);
 
         DeleteObject(axisPen);
         EndPaint(hwnd, &ps);
@@ -943,58 +969,138 @@ int main() {
     SetConsoleCP(65001);
     SetConsoleOutputCP(65001);
 
-    int data_points;
-    cout << "Enter number of data points for measurements: ";
-    cin >> data_points;
+    int num_arrays;
+    int num_points;
 
-    if (data_points <= 0) {
-        cout << "Number of points must be positive!" << endl;
+    cout << "Enter number of arrays: ";
+    cin >> num_arrays;
+    cout << "Enter number of points on graph: ";
+    cin >> num_points;
+
+    if (num_arrays <= 0 || num_points <= 0) {
+        cout << "Values must be positive!" << endl;
         return 1;
     }
 
-    vector<int> sizes;
-    vector<vector<double>> times(6);
+    if (num_points > num_arrays) {
+        cout << "Number of points cannot exceed number of arrays!" << endl;
+        return 1;
+    }
 
-    cout << "Measuring sorting time for " << data_points << " data points...\n";
+    vector<int> all_sizes(num_arrays);
+    vector<vector<double>> all_times(6, vector<double>(num_arrays, 0.0));
+
+    cout << "Measuring sorting time for " << num_arrays << " arrays...\n";
     cout << "=============================================\n";
 
-    int step_size = 100;
-    int max_size = step_size * data_points;
+    // Создаем массивы всех размеров от 1 до num_arrays
+    for (int i = 0; i < num_arrays; i++) {
+        all_sizes[i] = i + 1;  // Размеры: 1, 2, 3, ..., num_arrays
+    }
 
-    for (int i = 1; i <= data_points; i++) {
-        int size = i * step_size;
-        sizes.push_back(size);
+    // Предварительная генерация всех тестовых данных
+    vector<int*> test_arrays;
+    for (int size : all_sizes) {
+        test_arrays.push_back(create_array(size, 0));
+    }
 
-        cout << "Array size: " << size << endl;
+    auto start_time = chrono::steady_clock::now();
 
-        int* arr = create_array(size, 0);
+    // Оптимизированная многопоточность
+    unsigned int num_threads = thread::hardware_concurrency();
+    if (num_threads == 0) num_threads = 4;
 
-        for (int algo = 0; algo < 6; algo++) {
-            double time_val = 0;
+    cout << "Using " << num_threads << " threads\n";
 
-            switch (algo) {
-                case 0: time_val = measure_sort_time(arr, size, bubble_sort); break;
-                case 1: time_val = measure_sort_time(arr, size, selection_sort); break;
-                case 2: time_val = measure_sort_time(arr, size, insertion_sort); break;
-                case 3: time_val = measure_sort_time(arr, size, quick_sort); break;
-                case 4: time_val = measure_sort_time(arr, size, merge_sort); break;
-                case 5: time_val = measure_sort_time(arr, size, heap_sort); break;
+    vector<thread> threads;
+    atomic<int> next_task{0};
+    atomic<int> completed_tasks{0};
+    int total_tasks = num_arrays;
+
+    // Создаем рабочие потоки
+    for (unsigned int t = 0; t < num_threads; t++) {
+        threads.emplace_back([&]() {
+            while (true) {
+                int i = next_task++;
+                if (i >= num_arrays) break;
+
+                int size = all_sizes[i];
+                int* arr = test_arrays[i];
+
+                // Последовательно измеряем все 6 алгоритмов для этого размера
+                for (int algo = 0; algo < 6; algo++) {
+                    int reps = determine_repetitions(size);
+                    double time_val = 0;
+
+                    switch (algo) {
+                        case 0: time_val = measure_sort_time(arr, size, bubble_sort, reps); break;
+                        case 1: time_val = measure_sort_time(arr, size, selection_sort, reps); break;
+                        case 2: time_val = measure_sort_time(arr, size, insertion_sort, reps); break;
+                        case 3: time_val = measure_sort_time(arr, size, quick_sort, reps); break;
+                        case 4: time_val = measure_sort_time(arr, size, merge_sort, reps); break;
+                        case 5: time_val = measure_sort_time(arr, size, heap_sort, reps); break;
+                    }
+
+                    all_times[algo][i] = time_val;
+                }
+
+                completed_tasks++;
+
+                // Вывод прогресса
+                if (completed_tasks % max(1, num_arrays / 10) == 0) {
+                    double percent = (completed_tasks * 100.0) / total_tasks;
+                    cout << "Progress: " << completed_tasks << "/" << total_tasks << " (" << percent << "%)" << endl;
+                }
             }
+        });
+    }
 
-            times[algo].push_back(time_val);
-            cout << "  Algorithm " << algo+1 << ": " << time_val << " s" << endl;
+    // Ждем завершения всех потоков
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    auto end_time = chrono::steady_clock::now();
+    auto duration = chrono::duration_cast<chrono::seconds>(end_time - start_time);
+
+    cout << "Measurements completed in " << duration.count() << " seconds\n";
+
+    // Выбираем точки для графика
+    vector<int> graph_sizes(num_points);
+    vector<vector<double>> graph_times(6, vector<double>(num_points, 0.0));
+
+    int step = max(1, num_arrays / num_points);
+    for (int i = 0; i < num_points; i++) {
+        int idx = min(i * step, num_arrays - 1);
+        graph_sizes[i] = all_sizes[idx];
+        for (int algo = 0; algo < 6; algo++) {
+            graph_times[algo][i] = all_times[algo][idx];
         }
+    }
 
-        cout << "---------------------------------------------\n";
+    // Вывод результатов для выбранных точек
+    for (int i = 0; i < num_points; i++) {
+        cout << "Array size: " << graph_sizes[i] << endl;
+        for (int algo = 0; algo < 6; algo++) {
+            cout << "  Algorithm " << algo+1 << ": " << graph_times[algo][i] << " s" << endl;
+        }
+        if (i < num_points - 1) {
+            cout << "---------------------------------------------\n";
+        }
+    }
+
+    // Очистка тестовых данных
+    for (int* arr : test_arrays) {
         delete[] arr;
     }
 
+    // Сохранение результатов
     ofstream f("sorting_times.csv");
     f << "Size,Bubble,Selection,Insertion,Quick,Merge,Heap" << endl;
-    for (int i = 0; i < data_points; i++) {
-        f << sizes[i];
+    for (int i = 0; i < num_points; i++) {
+        f << graph_sizes[i];
         for (int algo = 0; algo < 6; algo++) {
-            f << "," << times[algo][i];
+            f << "," << graph_times[algo][i];
         }
         f << endl;
     }
@@ -1008,7 +1114,7 @@ int main() {
         animation_data.push_back(rand_uns(10, 100));
     }
 
-    GraphWindow graphWindow(times, sizes, 0);
+    GraphWindow graphWindow(graph_times, graph_sizes, 0);
     AnimationWindow animWindow(animation_data);
 
     cout << "\nBoth windows are open!\n";

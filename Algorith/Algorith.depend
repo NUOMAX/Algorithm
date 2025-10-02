@@ -33,3 +33,21 @@
 	<stack>
 	<mutex>
 
+1759443586 source:f:\algorithm\algorith\main.cpp
+	<fstream>
+	<chrono>
+	<random>
+	<iostream>
+	<windows.h>
+	<vector>
+	<string>
+	<sstream>
+	<thread>
+	<algorithm>
+	<functional>
+	<cmath>
+	<queue>
+	<stack>
+	<mutex>
+	<atomic>
+

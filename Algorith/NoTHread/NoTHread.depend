@@ -1,0 +1,16 @@
+# depslib dependency file v1.0
+1759607279 source:f:\algorithm\algorith\nothread\main.cpp
+	<fstream>
+	<chrono>
+	<random>
+	<iostream>
+	<windows.h>
+	<vector>
+	<string>
+	<sstream>
+	<algorithm>
+	<functional>
+	<cmath>
+	<queue>
+	<stack>
+

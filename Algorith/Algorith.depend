@@ -33,7 +33,7 @@
 	<stack>
 	<mutex>
 
-1759443586 source:f:\algorithm\algorith\main.cpp
+1759738843 source:f:\algorithm\algorith\main.cpp
 	<fstream>
 	<chrono>
 	<random>
@@ -42,12 +42,18 @@
 	<vector>
 	<string>
 	<sstream>
-	<thread>
 	<algorithm>
 	<functional>
 	<cmath>
 	<queue>
 	<stack>
-	<mutex>
+	<thread>
+	<future>
+	<typeinfo>
+	<type_traits>
+	<map>
+	<numeric>
+	<iomanip>
 	<atomic>
+	<ctime>
 

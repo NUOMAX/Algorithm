@@ -16,7 +16,7 @@
 	<stack>
 	<mutex>
 
-1759169781 source:c:\users\max\desktop\sort\algorithm\algorith\main.cpp
+1760313505 source:c:\users\max\desktop\sort\algorithm\algorith\main.cpp
 	<fstream>
 	<chrono>
 	<random>
@@ -25,13 +25,20 @@
 	<vector>
 	<string>
 	<sstream>
-	<thread>
 	<algorithm>
 	<functional>
 	<cmath>
 	<queue>
 	<stack>
-	<mutex>
+	<thread>
+	<future>
+	<typeinfo>
+	<type_traits>
+	<map>
+	<numeric>
+	<iomanip>
+	<atomic>
+	<ctime>
 
 1759744161 source:f:\algorithm\algorith\main.cpp
 	<fstream>

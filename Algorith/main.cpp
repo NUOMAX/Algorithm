@@ -33,14 +33,16 @@ wstring string_to_wstring(const string& str) {
 
 // ==================== ОСНОВНЫЕ СТРУКТУРЫ ДАННЫХ ====================
 
+// Структура для подсчета операций сортировки
 struct OperationCounts {
-    long long comparisons = 0;
-    long long swaps = 0;
-    long long memory_access = 0;
-    size_t extra_memory = 0;
-    size_t current_memory = 0;
-    vector<int> accessed_indices;
+    long long comparisons = 0;      // Количество сравнений
+    long long swaps = 0;            // Количество обменов
+    long long memory_access = 0;    // Количество обращений к памяти
+    size_t extra_memory = 0;        // Пиковое использование дополнительной памяти
+    size_t current_memory = 0;      // Текущее использование памяти
+    vector<int> accessed_indices;   // Индексы обработанных элементов (для анализа кэша)
 
+    // Сброс счетчиков
     void reset() {
         comparisons = swaps = memory_access = 0;
         extra_memory = current_memory = 0;
@@ -48,23 +50,27 @@ struct OperationCounts {
         accessed_indices.shrink_to_fit();
     }
 
+    // Обновление пикового использования памяти
     void update_peak_memory() {
         if (current_memory > extra_memory) {
             extra_memory = current_memory;
         }
     }
 
+    // Добавление используемой памяти
     void add_memory(size_t bytes) {
         current_memory += bytes;
         update_peak_memory();
     }
 
+    // Освобождение памяти
     void remove_memory(size_t bytes) {
         if (current_memory >= bytes) {
             current_memory -= bytes;
         }
     }
 
+    // Оператор сложения для агрегации результатов
     OperationCounts& operator+=(const OperationCounts& other) {
         comparisons += other.comparisons;
         swaps += other.swaps;
@@ -76,53 +82,62 @@ struct OperationCounts {
     }
 };
 
+// Детальные метрики для одного запуска алгоритма
 struct DetailedMetrics {
-    double time;
-    OperationCounts operations;
-    size_t memory_used;
-    bool stable;
+    double time;                    // Время выполнения
+    OperationCounts operations;     // Операции
+    size_t memory_used;            // Использованная память
+    bool stable;                   // Стабильность сортировки
 
     DetailedMetrics() : time(0.0), memory_used(0), stable(false) {}
 };
 
+// Статистические результаты многократных измерений
 struct StatisticalResults {
-    double mean_time;
-    double std_dev;
-    double min_time;
-    double max_time;
-    double confidence_interval;
-    vector<double> all_measurements;
+    double mean_time;              // Среднее время
+    double std_dev;                // Стандартное отклонение
+    double min_time;               // Минимальное время
+    double max_time;               // Максимальное время
+    double confidence_interval;    // Доверительный интервал
+    vector<double> all_measurements; // Все измерения
 
+    // Расчет статистик
     void calculate() {
         if (all_measurements.empty()) return;
 
+        // Среднее значение
         mean_time = accumulate(all_measurements.begin(), all_measurements.end(), 0.0) / all_measurements.size();
 
+        // Стандартное отклонение
         double sq_sum = 0.0;
         for (double t : all_measurements) {
             sq_sum += (t - mean_time) * (t - mean_time);
         }
         std_dev = sqrt(sq_sum / all_measurements.size());
 
+        // Минимум и максимум
         min_time = *min_element(all_measurements.begin(), all_measurements.end());
         max_time = *max_element(all_measurements.begin(), all_measurements.end());
 
+        // 95% доверительный интервал
         confidence_interval = 1.96 * std_dev / sqrt(all_measurements.size());
     }
 };
 
+// Результаты работы алгоритма
 struct AlgorithmResult {
-    string name;
-    vector<DetailedMetrics> metrics;
-    StatisticalResults stats;
-    double cache_efficiency;
-    bool stable;
-    string complexity;
-    vector<double> times_by_size;
-    OperationCounts avg_operations;
+    string name;                   // Название алгоритма
+    vector<DetailedMetrics> metrics; // Детальные метрики
+    StatisticalResults stats;      // Статистика
+    double cache_efficiency;       // Эффективность кэша
+    bool stable;                   // Стабильность
+    string complexity;             // Вычислительная сложность
+    vector<double> times_by_size;  // Время для каждого размера
+    OperationCounts avg_operations; // Средние операции
 
     AlgorithmResult(const string& n) : name(n), cache_efficiency(0), stable(false) {}
 
+    // Расчет средних операций
     void calculateAverageOperations() {
         if (metrics.empty()) return;
 
@@ -131,6 +146,7 @@ struct AlgorithmResult {
             avg_operations += metric.operations;
         }
 
+        // Усреднение
         avg_operations.comparisons /= metrics.size();
         avg_operations.swaps /= metrics.size();
         avg_operations.memory_access /= metrics.size();
@@ -138,13 +154,15 @@ struct AlgorithmResult {
     }
 };
 
+// Анализ для конкретного типа данных
 struct DataTypeAnalysis {
-    string type_name;
-    vector<AlgorithmResult> algorithms;
-    map<string, double> best_times;
-    vector<int> test_sizes;
-    map<string, vector<AlgorithmResult>> algorithms_by_distribution;
+    string type_name;              // Название типа данных
+    vector<AlgorithmResult> algorithms; // Алгоритмы
+    map<string, double> best_times; // Лучшие времена по распределениям
+    vector<int> test_sizes;        // Тестовые размеры
+    map<string, vector<AlgorithmResult>> algorithms_by_distribution; // Алгоритмы по распределениям
 
+    // Получение алгоритмов для конкретного распределения
     vector<AlgorithmResult> getAlgorithmsForDistribution(const string& distribution) const {
         auto it = algorithms_by_distribution.find(distribution);
         if (it != algorithms_by_distribution.end()) {
@@ -156,6 +174,7 @@ struct DataTypeAnalysis {
 
 // ==================== СИСТЕМА СОХРАНЕНИЯ РЕЗУЛЬТАТОВ ====================
 
+// Версии структур для сохранения (без временных данных)
 struct SavedOperationCounts {
     long long comparisons = 0;
     long long swaps = 0;
@@ -190,15 +209,17 @@ struct SavedDataTypeAnalysis {
     map<string, vector<SavedAlgorithmResult>> algorithms_by_distribution;
 };
 
+// Сессия анализа для сохранения
 struct AnalysisSession {
-    string timestamp;
-    string version = "1.0";
-    vector<SavedDataTypeAnalysis> results;
-    vector<string> distributions;
-    vector<int> original_test_sizes;
-    int num_threads;
-    double total_duration_seconds;
+    string timestamp;              // Временная метка
+    string version = "1.0";        // Версия
+    vector<SavedDataTypeAnalysis> results; // Результаты
+    vector<string> distributions;  // Распределения данных
+    vector<int> original_test_sizes; // Исходные размеры
+    int num_threads;               // Количество потоков
+    double total_duration_seconds; // Общее время выполнения
 
+    // Сохранение в JSON файл
     bool saveToJSON(const string& filename) {
         ofstream file(filename);
         if (!file.is_open()) {
@@ -206,6 +227,7 @@ struct AnalysisSession {
             return false;
         }
 
+        // Запись структурированного JSON
         file << "{\n";
         file << "  \"timestamp\": \"" << timestamp << "\",\n";
         file << "  \"version\": \"" << version << "\",\n";
@@ -225,6 +247,7 @@ struct AnalysisSession {
         file << "],\n";
         file << "  \"results\": [\n";
 
+        // Запись результатов по типам данных
         for (size_t data_idx = 0; data_idx < results.size(); data_idx++) {
             const auto& data_type = results[data_idx];
             file << "    {\n";
@@ -236,6 +259,7 @@ struct AnalysisSession {
             }
             file << "],\n";
 
+            // Лучшие времена
             file << "      \"best_times\": {\n";
             size_t best_count = 0;
             for (const auto& [dist, time] : data_type.best_times) {
@@ -255,6 +279,7 @@ struct AnalysisSession {
                 file << "          \"stable\": " << (algo.stable ? "true" : "false") << ",\n";
                 file << "          \"complexity\": \"" << algo.complexity << "\",\n";
 
+                // Статистика
                 file << "          \"stats\": {\n";
                 file << "            \"mean_time\": " << algo.stats.mean_time << ",\n";
                 file << "            \"std_dev\": " << algo.stats.std_dev << ",\n";
@@ -263,6 +288,7 @@ struct AnalysisSession {
                 file << "            \"confidence_interval\": " << algo.stats.confidence_interval << "\n";
                 file << "          },\n";
 
+                // Времена по размерам
                 file << "          \"times_by_size\": [";
                 for (size_t i = 0; i < algo.times_by_size.size(); i++) {
                     file << algo.times_by_size[i];
@@ -270,6 +296,7 @@ struct AnalysisSession {
                 }
                 file << "],\n";
 
+                // Операции
                 file << "          \"operations\": {\n";
                 file << "            \"comparisons\": " << algo.avg_operations.comparisons << ",\n";
                 file << "            \"swaps\": " << algo.avg_operations.swaps << ",\n";
@@ -342,8 +369,10 @@ struct AnalysisSession {
     }
 };
 
+// Класс для сохранения результатов
 class ResultsSaver {
 public:
+    // Конвертация структур для сохранения
     static SavedOperationCounts convert(const OperationCounts& ops) {
         SavedOperationCounts saved;
         saved.comparisons = ops.comparisons;
@@ -399,6 +428,7 @@ public:
         return saved;
     }
 
+    // Основная функция сохранения результатов
     static bool saveResults(const vector<DataTypeAnalysis>& results,
                           const vector<int>& test_sizes,
                           int num_threads,
@@ -406,6 +436,7 @@ public:
                           const string& custom_filename = "") {
         AnalysisSession session;
 
+        // Установка временной метки
         auto now = chrono::system_clock::now();
         auto time_t = chrono::system_clock::to_time_t(now);
         char timestamp[100];
@@ -417,10 +448,12 @@ public:
         session.num_threads = num_threads;
         session.total_duration_seconds = duration_seconds;
 
+        // Конвертация результатов
         for (const auto& result : results) {
             session.results.push_back(convert(result));
         }
 
+        // Генерация имени файла
         string filename = custom_filename;
         if (filename.empty()) {
             filename = "sorting_results_" + session.timestamp + ".json";
@@ -432,16 +465,19 @@ public:
 
 // ==================== СУЩЕСТВУЮЩИЙ КОД ====================
 
+// Генератор случайных чисел
 mt19937& get_random_engine() {
     static mt19937 engine(chrono::steady_clock::now().time_since_epoch().count());
     return engine;
 }
 
+// Генерация случайного числа в диапазоне
 int rand_uns(int min, int max) {
     static uniform_int_distribution<int> dist;
     return dist(get_random_engine(), uniform_int_distribution<int>::param_type(min, max));
 }
 
+// Получение текущего времени
 double get_time() {
     return chrono::duration_cast<chrono::microseconds>
     (chrono::steady_clock::now().time_since_epoch()).count()/1e6;
@@ -449,6 +485,7 @@ double get_time() {
 
 // Алгоритмы сортировки с инструментацией
 
+// Сортировка пузырьком
 template<typename T>
 void bubble_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.add_memory(sizeof(bool) + sizeof(int) * 2);
@@ -477,6 +514,7 @@ void bubble_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.remove_memory(sizeof(bool) + sizeof(int) * 2);
 }
 
+// Сортировка выбором
 template<typename T>
 void selection_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.add_memory(sizeof(int) * 3);
@@ -511,6 +549,7 @@ void selection_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.remove_memory(sizeof(int) * 3);
 }
 
+// Сортировка вставками
 template<typename T>
 void insertion_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.add_memory(sizeof(T) + sizeof(int) * 2);
@@ -546,6 +585,7 @@ void insertion_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.remove_memory(sizeof(T) + sizeof(int) * 2);
 }
 
+// Быстрая сортировка (рекурсивная часть)
 template<typename T>
 void quick_sort_instrumented(T arr[], int low, int high, OperationCounts& ops) {
     ops.add_memory(sizeof(int) * 4);
@@ -590,11 +630,13 @@ void quick_sort_instrumented(T arr[], int low, int high, OperationCounts& ops) {
     ops.remove_memory(sizeof(int) * 4);
 }
 
+// Быстрая сортировка (обертка)
 template<typename T>
 void quick_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     quick_sort_instrumented(arr, 0, n - 1, ops);
 }
 
+// Слияние для сортировки слиянием
 template<typename T>
 void merge_instrumented(T arr[], int left, int mid, int right, OperationCounts& ops) {
     int n1 = mid - left + 1;
@@ -605,6 +647,7 @@ void merge_instrumented(T arr[], int left, int mid, int right, OperationCounts& 
 
     vector<T> L(n1), R(n2);
 
+    // Копирование данных во временные массивы
     for (int i = 0; i < n1; i++) {
         L[i] = arr[left + i];
         ops.memory_access += 2;
@@ -616,6 +659,7 @@ void merge_instrumented(T arr[], int left, int mid, int right, OperationCounts& 
 
     int i = 0, j = 0, k = left;
 
+    // Слияние
     while (i < n1 && j < n2) {
         ops.comparisons++;
         ops.memory_access += 2;
@@ -636,6 +680,7 @@ void merge_instrumented(T arr[], int left, int mid, int right, OperationCounts& 
         k++;
     }
 
+    // Копирование оставшихся элементов
     while (i < n1) {
         arr[k] = L[i];
         ops.memory_access += 2;
@@ -653,6 +698,7 @@ void merge_instrumented(T arr[], int left, int mid, int right, OperationCounts& 
     ops.remove_memory(temp_memory);
 }
 
+// Сортировка слиянием (рекурсивная часть)
 template<typename T>
 void merge_sort_instrumented(T arr[], int left, int right, OperationCounts& ops) {
     ops.add_memory(sizeof(int) * 2);
@@ -669,11 +715,13 @@ void merge_sort_instrumented(T arr[], int left, int right, OperationCounts& ops)
     ops.remove_memory(sizeof(int) * 2);
 }
 
+// Сортировка слиянием (обертка)
 template<typename T>
 void merge_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     merge_sort_instrumented(arr, 0, n - 1, ops);
 }
 
+// Просеивание для пирамидальной сортировки
 template<typename T>
 void heapify_instrumented(T arr[], int n, int i, OperationCounts& ops) {
     ops.add_memory(sizeof(int) * 4);
@@ -716,13 +764,16 @@ void heapify_instrumented(T arr[], int n, int i, OperationCounts& ops) {
     ops.remove_memory(sizeof(int) * 4);
 }
 
+// Пирамидальная сортировка
 template<typename T>
 void heap_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.add_memory(sizeof(int));
 
+    // Построение кучи
     for (int i = n / 2 - 1; i >= 0; i--)
         heapify_instrumented(arr, n, i, ops);
 
+    // Извлечение элементов из кучи
     for (int i = n - 1; i > 0; i--) {
         ops.swaps++;
         ops.memory_access += 4;
@@ -733,6 +784,7 @@ void heap_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     ops.remove_memory(sizeof(int));
 }
 
+// Стандартная сортировка (оценка операций)
 template<typename T>
 void std_sort_instrumented(T arr[], int n, OperationCounts& ops) {
     size_t estimated_memory = sizeof(T) * n * 0.1;
@@ -751,35 +803,36 @@ void std_sort_instrumented(T arr[], int n, OperationCounts& ops) {
         arr[i] = temp[i];
     }
 
+    // Оценка операций для std::sort
     ops.comparisons = n * log2(n) * 1.5;
     ops.swaps = n * log2(n) * 0.5;
 
     ops.remove_memory(estimated_memory);
 }
 
-// Функции создания массивов
+// Функции создания массивов с различными распределениями
 template<typename T>
 T* create_array(int n, int type) {
     T* arr = new T[n];
 
     if constexpr (is_integral_v<T> && !is_same_v<T, bool>) {
         switch (type) {
-            case 0:
+            case 0: // Случайный
                 for (int i = 0; i < n; i++) {
                     arr[i] = rand_uns(1, 10000);
                 }
                 break;
-            case 1:
+            case 1: // Отсортированный
                 for (int i = 0; i < n; i++) {
                     arr[i] = i + 1;
                 }
                 break;
-            case 2:
+            case 2: // Обратный порядок
                 for (int i = 0; i < n; i++) {
                     arr[i] = n - i;
                 }
                 break;
-            case 3:
+            case 3: // Почти отсортированный
                 for (int i = 0; i < n; i++) {
                     arr[i] = i + 1;
                 }
@@ -789,7 +842,7 @@ T* create_array(int n, int type) {
                     swap(arr[idx1], arr[idx2]);
                 }
                 break;
-            case 4:
+            case 4: // Мало уникальных значений
                 for (int i = 0; i < n; i++) {
                     arr[i] = rand_uns(1, 10);
                 }
@@ -834,7 +887,7 @@ T* create_array(int n, int type) {
         const int charset_size = sizeof(chars) - 1;
 
         switch (type) {
-            case 0:
+            case 0: // Случайные строки
                 for (int i = 0; i < n; i++) {
                     int len = rand_uns(5, 15);
                     string s;
@@ -844,17 +897,17 @@ T* create_array(int n, int type) {
                     arr[i] = s;
                 }
                 break;
-            case 1:
+            case 1: // Отсортированные строки
                 for (int i = 0; i < n; i++) {
                     arr[i] = "str_" + to_string(i);
                 }
                 break;
-            case 2:
+            case 2: // Обратный порядок
                 for (int i = 0; i < n; i++) {
                     arr[i] = "str_" + to_string(n - i);
                 }
                 break;
-            case 3:
+            case 3: // Почти отсортированный
                 for (int i = 0; i < n; i++) {
                     arr[i] = "str_" + to_string(i);
                 }
@@ -864,7 +917,7 @@ T* create_array(int n, int type) {
                     swap(arr[idx1], arr[idx2]);
                 }
                 break;
-            case 4:
+            case 4: // Мало уникальных значений
                 {
                     vector<string> unique_strings = {"apple", "banana", "cherry", "date", "elderberry",
                                                    "fig", "grape", "honeydew", "kiwi", "lemon"};
@@ -884,22 +937,22 @@ template<>
 bool* create_array<bool>(int n, int type) {
     bool* arr = new bool[n];
     switch (type) {
-        case 0:
+        case 0: // Случайный
             for (int i = 0; i < n; i++) {
                 arr[i] = rand_uns(0, 1);
             }
             break;
-        case 1:
+        case 1: // Отсортированный
             for (int i = 0; i < n; i++) {
                 arr[i] = (i >= n/2);
             }
             break;
-        case 2:
+        case 2: // Обратный порядок
             for (int i = 0; i < n; i++) {
                 arr[i] = (i < n/2);
             }
             break;
-        case 3:
+        case 3: // Почти отсортированный
             for (int i = 0; i < n; i++) {
                 arr[i] = (i >= n/2);
             }
@@ -908,7 +961,7 @@ bool* create_array<bool>(int n, int type) {
                 arr[idx] = !arr[idx];
             }
             break;
-        case 4:
+        case 4: // Мало уникальных значений
             for (int i = 0; i < n; i++) {
                 arr[i] = rand_uns(0, 1);
             }
@@ -918,6 +971,8 @@ bool* create_array<bool>(int n, int type) {
 }
 
 // Классы для отображения результатов
+
+// Окно для построения графиков
 class GraphWindow {
 private:
     HWND hwnd;
@@ -970,6 +1025,7 @@ public:
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
     }
 
+    // Отрисовка графика
     void drawGraph() {
         PAINTSTRUCT ps;
         hdc = BeginPaint(hwnd, &ps);
@@ -978,6 +1034,7 @@ public:
         GetClientRect(hwnd, &clientRect);
         FillRect(hdc, &clientRect, (HBRUSH)(COLOR_WINDOW + 1));
 
+        // Заголовок окна
         wchar_t title[400];
         wchar_t data_type_name[50];
         wchar_t algo_display[100];
@@ -1028,6 +1085,7 @@ public:
         SelectObject(hdc, hOldFont);
         DeleteObject(hFont);
 
+        // Область графика
         int margin = 80;
         int graphWidth = clientRect.right - 2 * margin;
         int graphHeight = clientRect.bottom - 2 * margin;
@@ -1039,6 +1097,7 @@ public:
             return;
         }
 
+        // Получение данных для отображения
         auto current_algorithms = results[current_data_type].getAlgorithmsForDistribution(distributions[current_distribution]);
         auto& sizes = results[current_data_type].test_sizes;
 
@@ -1046,6 +1105,7 @@ public:
         vector<vector<double>> y_values(current_algorithms.size());
         vector<vector<double>> original_y_values(current_algorithms.size());
 
+        // Подготовка значений X
         for (int size : sizes) {
             if (log_scale_x) {
                 x_values.push_back(log10(max(1, size)));
@@ -1057,6 +1117,7 @@ public:
         double min_x = *min_element(x_values.begin(), x_values.end());
         double max_x = *max_element(x_values.begin(), x_values.end());
 
+        // Подготовка значений Y
         double min_time = numeric_limits<double>::max();
         double max_time = numeric_limits<double>::lowest();
 
@@ -1072,6 +1133,7 @@ public:
 
                 double display_val = time_val;
 
+                // Нормализация относительно std::sort
                 if (normalized_view) {
                     double std_sort_time = 1.0;
                     for (const auto& a : current_algorithms) {
@@ -1096,6 +1158,7 @@ public:
             }
         }
 
+        // Настройка диапазона Y
         if (max_time <= min_time) {
             if (normalized_view) {
                 min_time = 0.0;
@@ -1113,6 +1176,7 @@ public:
             max_time += range * 0.05;
         }
 
+        // Оси
         HPEN axisPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
         HPEN oldPen = (HPEN)SelectObject(hdc, axisPen);
 
@@ -1122,6 +1186,7 @@ public:
         MoveToEx(hdc, margin, graphTop, NULL);
         LineTo(hdc, margin, graphBottom);
 
+        // Подписи осей
         SetTextColor(hdc, RGB(0, 0, 0));
         SetBkMode(hdc, TRANSPARENT);
 
@@ -1151,6 +1216,7 @@ public:
         SelectObject(hdc, hOldFontVert);
         DeleteObject(hFontVert);
 
+        // Сетка и подписи по оси Y
         for (int i = 0; i <= 5; i++) {
             double normalized_val = min_time + (max_time - min_time) * i / 5.0;
             double y_pos = graphBottom - (graphHeight * i) / 5.0;
@@ -1180,6 +1246,7 @@ public:
 
             TextOutW(hdc, margin - 60, y_pos - 8, label, wcslen(label));
 
+            // Линии сетки
             HPEN gridPen = CreatePen(PS_DOT, 1, RGB(200, 200, 200));
             SelectObject(hdc, gridPen);
             MoveToEx(hdc, margin, y_pos, NULL);
@@ -1188,6 +1255,7 @@ public:
             DeleteObject(gridPen);
         }
 
+        // Подписи по оси X
         if (!sizes.empty()) {
             int step = max(1, static_cast<int>(sizes.size()) / 8);
             for (size_t i = 0; i < sizes.size(); i += step) {
@@ -1206,6 +1274,7 @@ public:
             }
         }
 
+        // Цвета для алгоритмов
         vector<COLORREF> colors = {
             RGB(255, 0, 0),     // Red - Bubble
             RGB(0, 0, 255),     // Blue - Selection
@@ -1216,6 +1285,7 @@ public:
             RGB(255, 128, 0)    // Orange - std::sort
         };
 
+        // Отрисовка линий графиков
         if (!sizes.empty() && !current_algorithms.empty()) {
             for (size_t algo_idx = 0; algo_idx < current_algorithms.size(); algo_idx++) {
                 if (current_display != 0 && current_display != static_cast<int>(algo_idx) + 1) {
@@ -1244,6 +1314,7 @@ public:
                     MoveToEx(hdc, x1, y1, NULL);
                     LineTo(hdc, x2, y2);
 
+                    // Точки на графике
                     HBRUSH pointBrush = CreateSolidBrush(colors[algo_idx % colors.size()]);
                     HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, pointBrush);
                     Ellipse(hdc, x1 - 3, y1 - 3, x1 + 3, y1 + 3);
@@ -1256,6 +1327,7 @@ public:
             }
         }
 
+        // Легенда
         int legendX = margin + graphWidth - 200;
         int legendY = graphTop + 20;
 
@@ -1279,6 +1351,7 @@ public:
             }
         }
 
+        // Управление
         SetTextColor(hdc, RGB(0, 0, 0));
         TextOutW(hdc, margin, graphTop - 80,
                 L"Q/W/E/R/T: Data Types | A/S/D/F/G: Distributions", 50);
@@ -1375,6 +1448,7 @@ public:
     }
 };
 
+// Окно таблицы результатов
 class ResultsTableWindow {
 private:
     HWND hwnd;
@@ -1427,6 +1501,7 @@ public:
         GetClientRect(hwnd, &clientRect);
         FillRect(hdc, &clientRect, (HBRUSH)(COLOR_WINDOW + 1));
 
+        // Заголовок
         wchar_t title[300];
         wstring data_type_w = string_to_wstring(results[current_data_type].type_name);
         wstring distribution_w = string_to_wstring(distributions[current_distribution]);
@@ -1443,6 +1518,7 @@ public:
         SelectObject(hdc, hOldFont);
         DeleteObject(hFont);
 
+        // Заголовки столбцов
         int y = 60;
         int x_algorithm = 50;
         int x_time = 200;
@@ -1464,6 +1540,7 @@ public:
 
         y += 30;
 
+        // Данные алгоритмов
         auto current_algorithms = results[current_data_type].getAlgorithmsForDistribution(distributions[current_distribution]);
 
         for (const auto& algo : current_algorithms) {
@@ -1501,6 +1578,7 @@ public:
             y += 20;
         }
 
+        // Примечания по использованию памяти
         y += 30;
         TextOutW(hdc, 50, y, L"Memory Usage Notes:", 18);
         y += 20;
@@ -1512,6 +1590,7 @@ public:
         y += 20;
         TextOutW(hdc, 50, y, L"- Heap Sort: O(1) extra space", 30);
 
+        // Управление
         y += 30;
         TextOutW(hdc, 50, y, L"Controls:", 9);
         y += 25;
@@ -1577,6 +1656,7 @@ public:
     }
 };
 
+// Основной класс анализатора
 class ComprehensiveAnalyzer {
 private:
     vector<int> test_sizes;
@@ -1590,6 +1670,7 @@ private:
     };
     int num_threads;
 
+    // Расчет эффективности кэша
     double calculate_cache_efficiency(const vector<int>& accessed_indices, int array_size) {
         if (accessed_indices.empty()) return 0.0;
         const int CACHE_LINE = 64;
@@ -1602,6 +1683,7 @@ private:
         return static_cast<double>(spatial_locality) / accessed_indices.size();
     }
 
+    // Анализ для конкретного типа данных и распределения
     template<typename T>
     vector<AlgorithmResult> analyze_data_type(int data_type_index, int distribution_type) {
         vector<AlgorithmResult> algorithms = {
@@ -1614,6 +1696,7 @@ private:
             AlgorithmResult("std::sort")
         };
 
+        // Установка сложности алгоритмов
         algorithms[0].complexity = "O(n^2)";
         algorithms[1].complexity = "O(n^2)";
         algorithms[2].complexity = "O(n^2)";
@@ -1622,15 +1705,18 @@ private:
         algorithms[5].complexity = "O(n log n)";
         algorithms[6].complexity = "O(n log n)";
 
+        // Анализ каждого алгоритма
         for (size_t algo_index = 0; algo_index < algorithms.size(); algo_index++) {
             cout << "  " << data_types[data_type_index] << " - " << algorithms[algo_index].name << "...\n";
 
             StatisticalResults stats;
             vector<double> times_for_sizes;
 
+            // Тестирование для каждого размера массива
             for (size_t i = 0; i < test_sizes.size(); i++) {
                 int size = test_sizes[i];
 
+                // Пропуск больших размеров для медленных алгоритмов
                 if (size > 10000 && (algo_index == 0 || algo_index == 1 || algo_index == 2)) {
                     times_for_sizes.push_back(0.0);
                     continue;
@@ -1643,6 +1729,7 @@ private:
 
                 auto start = chrono::high_resolution_clock::now();
 
+                // Вызов соответствующего алгоритма сортировки
                 switch (algo_index) {
                     case 0: bubble_sort_instrumented(test_data, size, ops); break;
                     case 1: selection_sort_instrumented(test_data, size, ops); break;
@@ -1665,16 +1752,19 @@ private:
 
                 delete[] test_data;
 
+                // Очистка временных данных
                 ops.accessed_indices.clear();
                 ops.accessed_indices.shrink_to_fit();
             }
 
+            // Расчет статистик
             stats.calculate();
             algorithms[algo_index].stats = stats;
             algorithms[algo_index].times_by_size = times_for_sizes;
 
             algorithms[algo_index].calculateAverageOperations();
 
+            // Установка стабильности
             if (algo_index == 2 || algo_index == 4) {
                 algorithms[algo_index].stable = true;
             } else if (algo_index == 6) {
@@ -1683,6 +1773,7 @@ private:
                 algorithms[algo_index].stable = false;
             }
 
+            // Очистка детальных метрик
             algorithms[algo_index].metrics.clear();
             algorithms[algo_index].metrics.shrink_to_fit();
         }
@@ -1694,12 +1785,14 @@ public:
     ComprehensiveAnalyzer(const vector<int>& sizes, int threads)
         : test_sizes(sizes), num_threads(threads) {}
 
+    // Запуск комплексного анализа
     vector<DataTypeAnalysis> run_comprehensive_analysis() {
         cout << "\n=== STARTING COMPREHENSIVE ANALYSIS ===\n";
         cout << "Using threads: " << num_threads << endl;
 
         vector<DataTypeAnalysis> all_results;
 
+        // Анализ для каждого типа данных
         for (int data_type = 0; data_type < static_cast<int>(data_types.size()); data_type++) {
             DataTypeAnalysis analysis;
             analysis.type_name = data_types[data_type];
@@ -1707,11 +1800,13 @@ public:
 
             cout << "\n--- Analyzing data type: " << data_types[data_type] << " ---\n";
 
+            // Анализ для каждого распределения
             for (int dist = 0; dist < static_cast<int>(distributions.size()); dist++) {
                 cout << "  Distribution: " << distributions[dist] << endl;
 
                 vector<AlgorithmResult> algorithms;
 
+                // Вызов специализированной функции для каждого типа данных
                 switch (data_type) {
                     case 0: algorithms = analyze_data_type<int>(data_type, dist); break;
                     case 1: algorithms = analyze_data_type<double>(data_type, dist); break;
@@ -1720,6 +1815,7 @@ public:
                     case 4: algorithms = analyze_data_type<bool>(data_type, dist); break;
                 }
 
+                // Поиск лучшего времени
                 double best_time = numeric_limits<double>::max();
                 for (const auto& algo : algorithms) {
                     if (algo.stats.mean_time < best_time && algo.stats.mean_time > 0) {
@@ -1730,6 +1826,7 @@ public:
 
                 analysis.algorithms_by_distribution[distributions[dist]] = algorithms;
 
+                // Сохранение результатов для первого распределения как основных
                 if (dist == 0) {
                     analysis.algorithms = algorithms;
                 }
@@ -1743,7 +1840,9 @@ public:
     }
 };
 
+// Главная функция
 int main() {
+    // Настройка консоли для UTF-8
     SetConsoleCP(65001);
     SetConsoleOutputCP(65001);
 
@@ -1751,6 +1850,7 @@ int main() {
 
     cout << "=== COMPREHENSIVE SORTING ALGORITHMS ANALYSIS ===\n\n";
 
+    // Ввод параметров
     cout << "Enter number of arrays (sizes): ";
     cin >> num_arrays;
     cout << "Enter number of points on graphs: ";
@@ -1768,6 +1868,7 @@ int main() {
         num_points = num_arrays;
     }
 
+    // Генерация размеров массивов
     vector<int> test_sizes(num_arrays);
     int max_size = min(10000, num_arrays * 10);
     for (int i = 0; i < num_arrays; i++) {
@@ -1775,6 +1876,7 @@ int main() {
         if (test_sizes[i] < 10) test_sizes[i] = 10;
     }
 
+    // Вывод конфигурации
     cout << "\nAnalysis Configuration:\n";
     cout << "=============================================\n";
     cout << "* Number of sizes: " << num_arrays << " (" << test_sizes[0] << " - " << test_sizes.back() << " elements)\n";
@@ -1789,6 +1891,7 @@ int main() {
 
     auto start_time = chrono::steady_clock::now();
 
+    // Запуск анализа
     ComprehensiveAnalyzer analyzer(test_sizes, num_threads);
     auto results = analyzer.run_comprehensive_analysis();
 
@@ -1797,6 +1900,7 @@ int main() {
 
     cout << "\nAnalysis completed in " << duration.count() << " seconds\n";
 
+    // Сохранение результатов
     cout << "\nSaving results to JSON file...\n";
     bool save_success = ResultsSaver::saveResults(results, test_sizes, num_threads, duration.count());
 
@@ -1806,6 +1910,7 @@ int main() {
         cout << "Warning: Failed to save results to file.\n";
     }
 
+    // Запрос на отображение результатов
     cout << "\nDo you want to view results now? (y/n): ";
     char choice;
     cin >> choice;
@@ -1819,6 +1924,7 @@ int main() {
 
         cout << "\n=== ANALYSIS SYSTEM LAUNCHED ===\n";
 
+        // Запуск окон в отдельных потоках
         thread tableThread([&tableWindow]() {
             tableWindow.runMessageLoop();
         });

@@ -1,3 +1,10 @@
+/*
+ * ПРОГРАММА ПРОСМОТРА РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ АЛГОРИТМОВ СОРТИРОВКИ
+ *
+ * Данная программа предоставляет графический интерфейс для анализа и визуализации
+ * результатов производительности различных алгоритмов сортировки, сохраненных в JSON формате.
+ */
+
 #include <fstream>
 #include <chrono>
 #include <random>
@@ -391,7 +398,7 @@ public:
                      << " with " << analysis.algorithms.size() << " main algorithms"
                      << " and " << analysis.algorithms_by_distribution.size() << " distributions" << endl;
 
-                // Вывод информации о распределениях
+                // Вывод информации о распределениям
                 for (const auto& [dist, algos] : analysis.algorithms_by_distribution) {
                     cout << "  - " << dist << ": " << algos.size() << " algorithms" << endl;
                 }
@@ -1447,7 +1454,7 @@ int main() {
     cout << "Launching graph window system...\n";
     GraphWindow graphWindow(results);
 
-    cout << "\=== VIEWER SYSTEM LAUNCHED ===\n";
+    cout << "\n=== VIEWER SYSTEM LAUNCHED ===\n";
     cout << " Use controls in windows to navigate results\n";
     cout << "   - Q/W/E/R/T: Switch data types\n";
     cout << "   - A/S/D/F/G: Switch distributions\n";
